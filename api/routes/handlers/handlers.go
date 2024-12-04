@@ -24,7 +24,8 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(b, &currNum)
 
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	ans := currNum.Nums1 + currNum.Nums2
@@ -45,7 +46,8 @@ func Subtract(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(b, &currNum)
 
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	ans := currNum.Nums1 - currNum.Nums2
@@ -66,7 +68,8 @@ func Multiply(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(b, &currNum)
 
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	ans := currNum.Nums1 * currNum.Nums2
@@ -87,7 +90,13 @@ func Divide(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(b, &currNum)
 
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if currNum.Nums2 == 0 {
+		http.Error(w, "Get Some Help", http.StatusBadRequest)
+		return
 	}
 
 	ans := currNum.Nums1 / currNum.Nums2
