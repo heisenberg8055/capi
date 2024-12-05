@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-func LogInfo(next http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func LogInfo(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 		next.ServeHTTP(w, r)
@@ -23,5 +23,5 @@ func LogInfo(next http.Handler) http.HandlerFunc {
 			slog.String("Endpoint", r.RequestURI),
 			slog.String("Time to process:", time.Since(start).String()),
 		)
-	}
+	})
 }

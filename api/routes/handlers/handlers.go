@@ -28,6 +28,9 @@ func (mr *malFormedRequest) Error() string {
 }
 
 func decodeJSONRequest(w http.ResponseWriter, r *http.Request, currNum Number) (error, Number) {
+	if r.Method != "POST" {
+		http.Error(w, "Wrong Api Call Method", http.StatusMethodNotAllowed)
+	}
 	ct := r.Header.Get("Content-Type")
 	if ct != "" {
 		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
@@ -84,7 +87,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Println(currNum.Nums1, currNum.Nums2)
 
 	ans := currNum.Nums1 + currNum.Nums2
 
