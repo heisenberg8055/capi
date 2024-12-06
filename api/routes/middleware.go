@@ -4,20 +4,12 @@ import "net/http"
 
 type Middleware func(http.Handler) http.Handler
 
-type Mstack []Middleware
-
-func CreateMStack(middlewares ...Middleware) Mstack {
-	var stack Mstack
-	return append(stack, middlewares...)
-}
-
-func (s Mstack) Then(originalHandler http.Handler) http.Handler {
-	if originalHandler == nil {
-		originalHandler = http.DefaultServeMux
+func CreateMStack(middlewares ...Middleware) Middleware {
+	return func(h http.Handler) http.Handler {
+		for i := len(middlewares) - 1; i >= 0; i-- {
+			middleware := middlewares[i]
+			h = middleware(h)
+		}
+		return h
 	}
-
-	for i := range s {
-		originalHandler = s[len(s)-i-1](originalHandler)
-	}
-	return originalHandler
 }

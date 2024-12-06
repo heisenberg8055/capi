@@ -18,25 +18,18 @@ type Answer struct {
 	Result int `json:"result"`
 }
 
-type malFormedRequest struct {
-	status int
-	msg    string
-}
-
-func (mr *malFormedRequest) Error() string {
-	return mr.msg
-}
-
-func decodeJSONRequest(w http.ResponseWriter, r *http.Request, currNum Number) (error, Number) {
+func DecodeJSONRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Wrong Api Call Method", http.StatusMethodNotAllowed)
+		return
 	}
 	ct := r.Header.Get("Content-Type")
 	if ct != "" {
 		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
 		if mediaType != "application/json" {
 			msg := "Content-type is not applciation/json"
-			return &malFormedRequest{status: http.StatusUnsupportedMediaType, msg: msg}, currNum
+			http.Error(w, msg, http.StatusUnsupportedMediaType)
+			return
 		}
 	}
 
@@ -45,6 +38,8 @@ func decodeJSONRequest(w http.ResponseWriter, r *http.Request, currNum Number) (
 
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
+
+	var currNum Number
 
 	err := dec.Decode(&currNum)
 
@@ -55,38 +50,49 @@ func decodeJSONRequest(w http.ResponseWriter, r *http.Request, currNum Number) (
 		switch {
 		case errors.As(err, &syntaxError):
 			msg := fmt.Sprintf("Request body contains badly-formed JSON (at position %d)", syntaxError.Offset)
-			return &malFormedRequest{status: http.StatusBadRequest, msg: msg}, currNum
+			http.Error(w, msg, http.StatusBadRequest)
+			return
 		case errors.Is(err, io.ErrUnexpectedEOF):
 			msg := "Request body contains badly-formed JSON"
-			return &malFormedRequest{status: http.StatusBadRequest, msg: msg}, currNum
+			http.Error(w, msg, http.StatusBadRequest)
+			return
 		case errors.As(err, &unmarshalTypeError):
 			msg := fmt.Sprintf("Request body contains an invalid value for the %q field (at position %d)", unmarshalTypeError.Field, unmarshalTypeError.Offset)
-			return &malFormedRequest{status: http.StatusBadRequest, msg: msg}, currNum
+			http.Error(w, msg, http.StatusBadRequest)
+			return
 		case strings.HasPrefix(err.Error(), "json: unknown field "):
 			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
 			msg := fmt.Sprintf("Request body contains unknown field %s", fieldName)
-			return &malFormedRequest{status: http.StatusBadRequest, msg: msg}, currNum
+			http.Error(w, msg, http.StatusBadRequest)
+			return
 		case errors.Is(err, io.EOF):
 			msg := "Request body must not be empty"
-			return &malFormedRequest{status: http.StatusBadRequest, msg: msg}, currNum
+			http.Error(w, msg, http.StatusBadRequest)
+			return
 		case err.Error() == "http: request body too large":
 			msg := "Request body must not be larger than 1MB"
-			return &malFormedRequest{status: http.StatusRequestEntityTooLarge, msg: msg}, currNum
+			http.Error(w, msg, http.StatusRequestEntityTooLarge)
+			return
 		default:
-			return err, currNum
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
-	return nil, currNum
+
+	switch r.RequestURI {
+	case "/add":
+		Add(w, r, &currNum)
+	case "/subtract":
+		Subtract(w, r, &currNum)
+	case "multiply":
+		Multiply(w, r, &currNum)
+	case "divide":
+		Divide(w, r, &currNum)
+	default:
+		http.Error(w, "Wrong Endpoint", http.StatusBadRequest)
+	}
 }
 
-func Add(w http.ResponseWriter, r *http.Request) {
-	var currNum Number
-	err, currNum := decodeJSONRequest(w, r, currNum)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+func Add(w http.ResponseWriter, r *http.Request, currNum *Number) {
 
 	ans := currNum.Nums1 + currNum.Nums2
 
@@ -97,19 +103,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJson)
 }
 
-func Subtract(w http.ResponseWriter, r *http.Request) {
-	var currNum Number
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal(b, &currNum)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
+func Subtract(w http.ResponseWriter, r *http.Request, currNum *Number) {
 	ans := currNum.Nums1 - currNum.Nums2
 
 	response := Answer{ans}
@@ -119,19 +113,7 @@ func Subtract(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJson)
 }
 
-func Multiply(w http.ResponseWriter, r *http.Request) {
-	var currNum Number
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal(b, &currNum)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
+func Multiply(w http.ResponseWriter, r *http.Request, currNum *Number) {
 	ans := currNum.Nums1 * currNum.Nums2
 
 	response := Answer{ans}
@@ -141,19 +123,7 @@ func Multiply(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJson)
 }
 
-func Divide(w http.ResponseWriter, r *http.Request) {
-	var currNum Number
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal(b, &currNum)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
+func Divide(w http.ResponseWriter, r *http.Request, currNum *Number) {
 	if currNum.Nums2 == 0 {
 		http.Error(w, "Get Some Help", http.StatusBadRequest)
 		return
