@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 
 	"golang.org/x/time/rate"
@@ -14,8 +13,6 @@ func RateLimit(next http.Handler) http.Handler {
 			http.Error(w, "Rate Limit Exceeded", http.StatusTooManyRequests)
 			return
 		} else {
-
-			fmt.Println(limiter.Tokens())
 			next.ServeHTTP(w, r)
 		}
 	})

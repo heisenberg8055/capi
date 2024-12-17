@@ -10,7 +10,7 @@ import (
 func Routes() *http.ServeMux {
 	router := http.NewServeMux()
 
-	stack := CreateMStack(middleware.LogInfo, middleware.RateLimit, middleware.ApplyCors)
+	stack := CreateMStack(middleware.ReqIDMiddleware, middleware.ApplyCors, middleware.VerifyToken, middleware.RateLimit, middleware.LogInfo)
 
 	finalHandler := http.HandlerFunc(handlers.DecodeJSONRequest)
 
@@ -21,6 +21,8 @@ func Routes() *http.ServeMux {
 	router.Handle("POST /multiply", stack(finalHandler))
 
 	router.Handle("POST /divide", stack(finalHandler))
+
+	router.HandleFunc("POST /token", middleware.TokenAuth)
 
 	return router
 }

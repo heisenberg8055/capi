@@ -10,12 +10,12 @@ import (
 )
 
 type Number struct {
-	Nums1 int `json:"number1"`
-	Nums2 int `json:"number2"`
+	Nums1 json.RawMessage `json:"number1"`
+	Nums2 json.RawMessage `json:"number2"`
 }
 
 type Answer struct {
-	Result int `json:"result"`
+	Result float64 `json:"result"`
 }
 
 func DecodeJSONRequest(w http.ResponseWriter, r *http.Request) {
@@ -92,11 +92,35 @@ func DecodeJSONRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func decodeNumber(rawMessage json.RawMessage) (float64, error) {
+	var f float64
+	if err := json.Unmarshal(rawMessage, &f); err == nil {
+		return f, nil
+	}
+	var i int64
+	if err := json.Unmarshal(rawMessage, &i); err == nil {
+		return float64(i), nil
+	}
+	return 0, errors.New("invalid number")
+}
+
 func Add(w http.ResponseWriter, r *http.Request, currNum *Number) {
 
-	ans := currNum.Nums1 + currNum.Nums2
+	nums1, err := decodeNumber(currNum.Nums1)
 
-	response := Answer{ans}
+	if err != nil {
+		http.Error(w, "number1 type is wrong!", http.StatusBadRequest)
+		return
+	}
+
+	nums2, err := decodeNumber(currNum.Nums2)
+
+	if err != nil {
+		http.Error(w, "number2 type is wrong!", http.StatusBadRequest)
+		return
+	}
+
+	response := Answer{nums1 + nums2}
 
 	responseJson, _ := json.Marshal(response)
 
@@ -104,9 +128,22 @@ func Add(w http.ResponseWriter, r *http.Request, currNum *Number) {
 }
 
 func Subtract(w http.ResponseWriter, r *http.Request, currNum *Number) {
-	ans := currNum.Nums1 - currNum.Nums2
 
-	response := Answer{ans}
+	nums1, err := decodeNumber(currNum.Nums1)
+
+	if err != nil {
+		http.Error(w, "number1 type is wrong!", http.StatusBadRequest)
+		return
+	}
+
+	nums2, err := decodeNumber(currNum.Nums2)
+
+	if err != nil {
+		http.Error(w, "number2 type is wrong!", http.StatusBadRequest)
+		return
+	}
+
+	response := Answer{nums1 - nums2}
 
 	responseJson, _ := json.Marshal(response)
 
@@ -114,9 +151,22 @@ func Subtract(w http.ResponseWriter, r *http.Request, currNum *Number) {
 }
 
 func Multiply(w http.ResponseWriter, r *http.Request, currNum *Number) {
-	ans := currNum.Nums1 * currNum.Nums2
 
-	response := Answer{ans}
+	nums1, err := decodeNumber(currNum.Nums1)
+
+	if err != nil {
+		http.Error(w, "number1 type is wrong!", http.StatusBadRequest)
+		return
+	}
+
+	nums2, err := decodeNumber(currNum.Nums2)
+
+	if err != nil {
+		http.Error(w, "number2 type is wrong!", http.StatusBadRequest)
+		return
+	}
+
+	response := Answer{nums1 * nums2}
 
 	responseJson, _ := json.Marshal(response)
 
@@ -124,12 +174,27 @@ func Multiply(w http.ResponseWriter, r *http.Request, currNum *Number) {
 }
 
 func Divide(w http.ResponseWriter, r *http.Request, currNum *Number) {
-	if currNum.Nums2 == 0 {
+
+	nums1, err := decodeNumber(currNum.Nums1)
+
+	if err != nil {
+		http.Error(w, "number1 type is wrong!", http.StatusBadRequest)
+		return
+	}
+
+	nums2, err := decodeNumber(currNum.Nums2)
+
+	if err != nil {
+		http.Error(w, "number2 type is wrong!", http.StatusBadRequest)
+		return
+	}
+
+	if nums2 == 0 {
 		http.Error(w, "Get Some Help", http.StatusBadRequest)
 		return
 	}
 
-	ans := currNum.Nums1 / currNum.Nums2
+	ans := nums1 / nums2
 
 	response := Answer{ans}
 

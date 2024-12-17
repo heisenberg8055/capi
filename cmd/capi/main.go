@@ -9,4 +9,5 @@ func main() {
 
 	mux := routes.Routes()
 	api.Start(mux)
+
 }

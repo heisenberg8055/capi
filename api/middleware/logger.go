@@ -12,6 +12,7 @@ func LogInfo(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		requestID := GetRequestID(r.Context())
 		next.ServeHTTP(w, r)
 		slog.SetDefault(logger)
 		slog.LogAttrs(
@@ -22,6 +23,7 @@ func LogInfo(next http.Handler) http.Handler {
 			slog.String("IP", r.RemoteAddr),
 			slog.String("Endpoint", r.RequestURI),
 			slog.String("Time to process:", time.Since(start).String()),
+			slog.String("RequestID:", requestID),
 		)
 	})
 }
